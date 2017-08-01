@@ -27,6 +27,7 @@ and installing the thermostat binding. To do this, enter the following commands
 from your OpenHAB 2 console:
 
 bundle:install http://central.maven.org/maven2/org/apache/httpcomponents/httpclient-osgi/4.3.4/httpclient-osgi-4.3.4.jar
+
 bundle:install http://central.maven.org/maven2/org/apache/httpcomponents/httpcore-osgi/4.3.3/httpcore-osgi-4.3.3.jar
 
 Once that's done, you can download and drop the binding jar into your addons 
