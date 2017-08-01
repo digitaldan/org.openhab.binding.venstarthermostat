@@ -31,7 +31,13 @@ bundle:install http://central.maven.org/maven2/org/apache/httpcomponents/httpcli
 bundle:install http://central.maven.org/maven2/org/apache/httpcomponents/httpcore-osgi/4.3.3/httpcore-osgi-4.3.3.jar
 
 Once that's done, you can download and drop the binding jar into your addons 
-directory and then restart OpenHAB. When things start back up, the binding 
+directory and then restart OpenHAB. You can download the binding from the Downloads link 
+to the left, or use this direct link for version 2.1.0:
+
+https://bitbucket.org/hww3/org.openhab.binding.venstarthermostat/downloads/org.openhab.binding.venstarthermostat-2.1.0.jar
+
+
+When things start back up, the binding 
 will attempt to discover any thermostats installed on your network and add them
 to the OpenHAB inbox.
 
