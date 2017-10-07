@@ -198,15 +198,14 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
             if (!(command instanceof DecimalType)) {
                 log.warn("Invalid heating setpoint command " + command);
             } else {
-                log.debug("Setting cooling setpoint to " + command.toFullString());
+                log.debug("Setting heating setpoint to " + command.toFullString());
                 setHeatingSetpoint(((DecimalType) command).intValue());
             }
-
         }
 
         if (channelUID.getId().equals(CHANNEL_COOLING_SETPOINT)) {
             if (!(command instanceof DecimalType)) {
-                log.warn("Invalid heating setpoint command " + command);
+                log.warn("Invalid cooling setpoint command " + command);
             } else {
                 log.debug("Setting cooling setpoint to " + command.toFullString());
                 setCoolingSetpoint(((DecimalType) command).intValue());
@@ -221,7 +220,6 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
                 setSystemMode(Integer.valueOf(((StringType) command).toString()));
             }
         }
-
     }
 
     public void updateUrl(String url) {
@@ -439,10 +437,17 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
     }
 
     private State getCoolingSetpoint() {
+        if (log.isTraceEnabled()) {
+            log.trace("CoolingSetpoint: " + infoData.getCooltemp() + " -> " + new DecimalType(infoData.getCooltemp()));
+        }
         return new DecimalType(infoData.getCooltemp());
     }
 
     private State getHeatingSetpoint() {
+        if (log.isTraceEnabled()) {
+            log.trace("HeatingSetpoint: " + infoData.getHeattemp() + " -> " + new DecimalType(infoData.getHeattemp()));
+        }
+
         return new DecimalType(infoData.getHeattemp());
     }
 
@@ -461,12 +466,20 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
         log.debug(
                 "Updating thermostat " + getThing().getLabel() + " heat:" + heat + " cool:" + cool + " mode: " + mode);
-        params.put("heattemp", "" + heat);
-        params.put("cooltemp", "" + cool);
+        if (heat > 0) {
+            params.put("heattemp", "" + heat);
+        }
+        if (cool > 0) {
+            params.put("cooltemp", "" + cool);
+        }
         params.put("mode", "" + mode);
 
         try {
             HttpResponse result = postConnection("/control", params);
+            if (log.isTraceEnabled()) {
+                log.trace("Result from theromstat: " + result.getStatusLine().toString());
+                log.trace("Result from theromstat: ");
+            }
             if (result.getStatusLine().getStatusCode() == 401) {
                 goOffline(ThingStatusDetail.CONFIGURATION_ERROR, "Invalid credentials");
                 log.info("Failed to update thermostat: invalid credentials");
@@ -475,13 +488,17 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
             HttpEntity entity = result.getEntity();
             String data = EntityUtils.toString(entity, "UTF-8");
+            if (log.isTraceEnabled()) {
+                log.trace("Result from theromstat: " + data);
+            }
+            ;
 
             VenstarResponse res = new Gson().fromJson(data, VenstarResponse.class);
             if (res.isSuccess()) {
                 log.info("Updated thermostat");
             } else {
-                log.info("Failed to update");
-                goOffline(ThingStatusDetail.COMMUNICATION_ERROR, "Thermostat update failed");
+                log.info("Failed to update: " + res.getReason());
+                goOffline(ThingStatusDetail.COMMUNICATION_ERROR, "Thermostat update failed: " + res.getReason());
             }
 
         } catch (IOException e) {
@@ -495,6 +512,10 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
     private boolean updateSensorData() {
         try {
             String sensorData = getData("/query/sensors");
+            if (log.isTraceEnabled()) {
+                log.trace("got sensordata from thermostat: " + sensorData);
+            }
+
             VenstarSensorData res = new Gson().fromJson(sensorData, VenstarSensorData.class);
 
             this.sensorData = res.getSensors();
@@ -510,6 +531,9 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         try {
 
             String infoData = getData("/query/info");
+            if (log.isTraceEnabled()) {
+                log.trace("got info from thermostat: " + infoData);
+            }
             VenstarInfoData id = new Gson().fromJson(infoData, VenstarInfoData.class);
             if (id != null) {
                 this.infoData = id;
@@ -595,6 +619,9 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
 
         for (Entry<String, String> ent : params.entrySet()) {
+            if (log.isTraceEnabled()) {
+                log.trace("setting " + ent.getKey() + ": " + ent.getValue());
+            }
             urlParameters.add(new BasicNameValuePair(ent.getKey(), ent.getValue()));
         }
         post.setEntity(new UrlEncodedFormEntity(urlParameters));

@@ -3,6 +3,7 @@ package org.openhab.binding.venstarthermostat.model;
 public class VenstarInfoData {
     double cooltemp;
     double heattemp;
+
     double state;
     double mode;
 
