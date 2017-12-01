@@ -265,7 +265,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
                 } catch (Throwable e) {
                     // we don't need to report errors for SEARCH requests.
                     if (!e.getMessage().contains("M-SEARCH")) {
-                        log.info("unable to parse response: " + e.getMessage());
+                        log.debug("unable to parse response: " + e.getMessage());
                     }
                     continue;
                 }
