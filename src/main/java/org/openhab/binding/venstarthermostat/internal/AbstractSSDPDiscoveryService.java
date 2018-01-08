@@ -100,7 +100,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
 
             @Override
             public void run() {
-                if (discoveryServiceCallback == null) {
+                if (getDiscoveryServiceCallback() == null) {
                     log.warn("DiscoveryServiceCallback not set (still starting?), waiting.");
                     runBackgroundScan(2);
                     return;
@@ -320,6 +320,10 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
         // log.warn(discoveryServiceCallback.toString());
         this.discoveryServiceCallback = discoveryServiceCallback;
         // log.debug(discoveryServiceCallback.toString());
+    }
+
+    public DiscoveryServiceCallback getDiscoveryServiceCallback() {
+        return discoveryServiceCallback;
     }
 
 }

@@ -86,9 +86,9 @@ public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryServ
                 uuid.replace(":", ""));
 
         log.debug("Got discovered device.");
-        if (discoveryServiceCallback != null) {
+        if (getDiscoveryServiceCallback() != null) {
             log.debug("Looking to see if this thing exists already.");
-            Thing thing = discoveryServiceCallback.getExistingThing(thingUid);
+            Thing thing = getDiscoveryServiceCallback().getExistingThing(thingUid);
             if (thing != null) {
                 this.backgroundScanInterval = 300;
                 log.debug("Already have thing with ID=<" + thingUid + ">");
