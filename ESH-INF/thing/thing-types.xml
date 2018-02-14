@@ -79,7 +79,7 @@
         <label>Heating Setpoint</label>
         <description>Heating Setpoint</description>
         <category>Temperature</category>
-        <state readOnly="false" pattern="%.1f °F" min="45" max="80" step="1.0"/>
+        <state readOnly="false" pattern="%.1f °F" min="40" max="80" step="1.0"/>
     </channel-type>
 
     <channel-type id="coolingSetpoint">

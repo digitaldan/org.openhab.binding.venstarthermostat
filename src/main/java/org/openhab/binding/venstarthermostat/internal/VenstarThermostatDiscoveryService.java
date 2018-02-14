@@ -5,12 +5,15 @@ import java.util.Set;
 import org.apache.http.HttpResponse;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
+import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.venstarthermostat.VenstarThermostatBindingConstants;
 import org.openhab.binding.venstarthermostat.handler.VenstarThermostatHandler;
+import org.osgi.service.component.annotations.Component;
 
+@Component(service = DiscoveryService.class, immediate = true, configurationPid = "binding.venstarthermostat")
 public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryService {
 
     private static final String COLOR_TOUCH_DISCOVERY_MESSAGE = "M-SEARCH * HTTP/1.1\r\n"
@@ -79,7 +82,7 @@ public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryServ
             f = uuid.indexOf(":type:");
             label = uuid.substring(s + 6, f);
 
-            uuid = uuid.substring(4, s);
+            uuid = uuid.substring("colortouchecp".length() + 1, s).toLowerCase();
         }
 
         ThingUID thingUid = new ThingUID(VenstarThermostatBindingConstants.THING_TYPE_COLOR_TOUCH,
