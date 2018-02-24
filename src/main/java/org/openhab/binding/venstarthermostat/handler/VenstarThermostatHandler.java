@@ -56,7 +56,6 @@ import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.config.core.status.ConfigStatusMessage;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.PercentType;
-import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -189,36 +188,28 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        if (!(command instanceof DecimalType)) {
+            log.warn("Invalid cooling setpoint command " + command);
+            return;
+        }
         if (channelUID.getId().equals(CHANNEL_HEATING_SETPOINT)) {
             // Note: if communication with thing fails for some reason,
             // indicate that by setting the status with detail information
             // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
             // "Could not control device at IP address x.x.x.x");
+            log.debug("Setting heating setpoint to " + command.toFullString());
+            setHeatingSetpoint(((DecimalType) command).intValue());
 
-            if (!(command instanceof DecimalType)) {
-                log.warn("Invalid heating setpoint command " + command);
-            } else {
-                log.debug("Setting heating setpoint to " + command.toFullString());
-                setHeatingSetpoint(((DecimalType) command).intValue());
-            }
         }
-
         if (channelUID.getId().equals(CHANNEL_COOLING_SETPOINT)) {
-            if (!(command instanceof DecimalType)) {
-                log.warn("Invalid cooling setpoint command " + command);
-            } else {
-                log.debug("Setting cooling setpoint to " + command.toFullString());
-                setCoolingSetpoint(((DecimalType) command).intValue());
-            }
-        }
+            log.debug("Setting cooling setpoint to " + command.toFullString());
+            setCoolingSetpoint(((DecimalType) command).intValue());
 
+        }
         if (channelUID.getId().equals(CHANNEL_SYSTEM_MODE)) {
-            if (!(command instanceof StringType)) {
-                log.warn("Invalid system mode command " + command);
-            } else {
-                log.debug("Setting system mode to " + command.toFullString());
-                setSystemMode(Integer.valueOf(((StringType) command).toString()));
-            }
+            log.debug("Setting system mode to " + command.toFullString());
+            setSystemMode(((DecimalType) command).intValue());
+
         }
     }
 
@@ -417,7 +408,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     private void setCoolingSetpoint(int cool) {
         int heat = ((DecimalType) getHeatingSetpoint()).intValue();
-        int mode = Integer.valueOf(((StringType) getSystemMode()).toString());
+        int mode = ((DecimalType) getSystemMode()).intValue();
 
         updateThermostat(heat, cool, mode);
     }
@@ -431,7 +422,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     private void setHeatingSetpoint(int heat) {
         int cool = ((DecimalType) getCoolingSetpoint()).intValue();
-        int mode = Integer.valueOf(((StringType) getSystemMode()).toString());
+        int mode = ((DecimalType) getSystemMode()).intValue();
 
         updateThermostat(heat, cool, mode);
     }
@@ -453,12 +444,12 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     private State getSystemState() {
         int num = (int) Math.round(infoData.getState());
-        return new StringType("" + num);
+        return new DecimalType(num);
     }
 
     private State getSystemMode() {
         int num = (int) Math.round(infoData.getMode());
-        return new StringType("" + num);
+        return new DecimalType(num);
     }
 
     private void updateThermostat(int heat, int cool, int mode) {

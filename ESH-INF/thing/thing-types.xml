@@ -44,10 +44,9 @@
     </thing-type>
 
     <channel-type id="systemMode">
-        <item-type>String</item-type>
+        <item-type>Number</item-type>
         <label>System Mode</label>
         <description>Current System Operating Mode</description>
-        <category>String</category>
         <state readOnly="false">
             <options>
                 <option value="0">Off</option>
@@ -59,10 +58,9 @@
     </channel-type>
 
     <channel-type id="systemState">
-        <item-type>String</item-type>
+        <item-type>Number</item-type>
         <label>System State</label>
         <description>Current System Operating State</description>
-        <category>String</category>
         <state readOnly="true">
             <options>
                 <option value="0">Idle</option>
