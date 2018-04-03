@@ -114,7 +114,7 @@ public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryServ
         result = DiscoveryResultBuilder.create(thingUid).withLabel(label).withRepresentationProperty(uuid)
                 .withProperty(VenstarThermostatBindingConstants.PROPERTY_UUID, uuid)
                 .withProperty(VenstarThermostatBindingConstants.PROPERTY_URL, url).build();
-        log.info("New venstar thermostat discovered with ID=<" + uuid.replace(":", "") + ">.");
+        log.debug("New venstar thermostat discovered with ID=<" + uuid.replace(":", "") + ">.");
         this.thingDiscovered(result);
     }
 

@@ -15,6 +15,7 @@ import java.util.Enumeration;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -35,7 +36,6 @@ import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryServiceCallback;
 import org.eclipse.smarthome.config.discovery.ExtendedDiscoveryService;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryService
@@ -95,7 +95,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
     protected abstract String getScanWords();
 
     protected void runBackgroundScan(final int seconds) {
-        log.info("scheduling discovery in " + seconds + " seconds.");
+        log.debug("scheduling discovery in " + seconds + " seconds.");
         scanFuture = scheduler.schedule(new Runnable() {
 
             @Override
