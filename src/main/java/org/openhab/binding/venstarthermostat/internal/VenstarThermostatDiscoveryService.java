@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2010-2018 by the respective copyright holders.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
+
 package org.openhab.binding.venstarthermostat.internal;
 
 import java.util.Set;
@@ -13,19 +21,16 @@ import org.openhab.binding.venstarthermostat.VenstarThermostatBindingConstants;
 import org.openhab.binding.venstarthermostat.handler.VenstarThermostatHandler;
 import org.osgi.service.component.annotations.Component;
 
+/**
+ *
+ * @author William Welliver - Initial contribution
+ *
+ */
 @Component(service = DiscoveryService.class, immediate = true, configurationPid = "binding.venstarthermostat")
 public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryService {
 
     private static final String COLOR_TOUCH_DISCOVERY_MESSAGE = "M-SEARCH * HTTP/1.1\r\n"
             + "Host: 239.255.255.250:1900\r\n" + "Man: ssdp:discover\r\n" + "ST: colortouch:ecp\r\n" + "\r\n";
-
-    /**
-     * Copyright (c) 2014-2016 by the respective copyright holders.
-     * All rights reserved. This program and the accompanying materials
-     * are made available under the terms of the Eclipse Public License v1.0
-     * which accompanies this distribution, and is available at
-     * http://www.eclipse.org/legal/epl-v10.html
-     */
 
     protected final static Set<ThingTypeUID> supportedDevices = VenstarThermostatBindingConstants.SUPPORTED_THING_TYPES;
 
@@ -55,7 +60,7 @@ public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryServ
         String url = "";
         String uuid = "";
 
-        log.debug("extracting data from: " + response);
+        log.debug("extracting data from: {}", response);
         org.apache.http.Header h = response.getFirstHeader("ST");
         if (h != null) {
             st = h.getValue();
@@ -94,14 +99,14 @@ public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryServ
             Thing thing = getDiscoveryServiceCallback().getExistingThing(thingUid);
             if (thing != null) {
                 this.backgroundScanInterval = 300;
-                log.debug("Already have thing with ID=<" + thingUid + ">");
+                log.debug("Already have thing with ID=<{}>", thingUid);
                 String thingUrl = thing.getProperties().get(VenstarThermostatBindingConstants.PROPERTY_URL);
-                log.debug("ThingURL=<" + thingUrl + ">, discoveredUrl=<" + url + ">");
+                log.debug("ThingURL=<{}>, discoveredUrl=<{}>", thingUrl, url);
                 this.backgroundScanInterval = 300;
                 if (thingUrl == null || !thingUrl.equals(url)) {
                     ((VenstarThermostatHandler) thing.getHandler()).updateUrl(url);
                     thing.getHandler().thingUpdated(thing);
-                    log.info("Updated url for existing Thermostat => " + url);
+                    log.info("Updated url for existing Thermostat => {}", url);
                 }
                 return;
             } else {
@@ -114,7 +119,7 @@ public class VenstarThermostatDiscoveryService extends AbstractSSDPDiscoveryServ
         result = DiscoveryResultBuilder.create(thingUid).withLabel(label).withRepresentationProperty(uuid)
                 .withProperty(VenstarThermostatBindingConstants.PROPERTY_UUID, uuid)
                 .withProperty(VenstarThermostatBindingConstants.PROPERTY_URL, url).build();
-        log.info("New venstar thermostat discovered with ID=<" + uuid.replace(":", "") + ">.");
+        log.info("New venstar thermostat discovered with ID=<{}>", uuid.replace(":", ""));
         this.thingDiscovered(result);
     }
 

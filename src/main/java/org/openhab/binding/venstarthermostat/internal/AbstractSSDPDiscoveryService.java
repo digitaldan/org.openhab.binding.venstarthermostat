@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2010-2018 by the respective copyright holders.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
+
 package org.openhab.binding.venstarthermostat.internal;
 
 import java.io.ByteArrayInputStream;
@@ -40,14 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryService
         implements ExtendedDiscoveryService {
-
-    /**
-     * Copyright (c) 2014-2016 by the respective copyright holders.
-     * All rights reserved. This program and the accompanying materials
-     * are made available under the terms of the Eclipse Public License v1.0
-     * which accompanies this distribution, and is available at
-     * http://www.eclipse.org/legal/epl-v10.html
-     */
 
     protected Logger log = LoggerFactory.getLogger(getClass());
 
@@ -95,7 +95,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
     protected abstract String getScanWords();
 
     protected void runBackgroundScan(final int seconds) {
-        log.info("scheduling discovery in " + seconds + " seconds.");
+        log.info("scheduling discovery in {} seconds.", seconds);
         scanFuture = scheduler.schedule(new Runnable() {
 
             @Override
@@ -159,10 +159,10 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
 
         final int port = 1900;
 
-        log.debug("Considering " + ni.getName());
+        log.debug("Considering []", ni.getName());
         try {
             if (!ni.isUp() || !ni.supportsMulticast()) {
-                log.debug("skipping interface " + ni.getName());
+                log.debug("skipping interface {}", ni.getName());
                 return null;
             }
 
@@ -177,7 +177,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
                 }
             }
             if (a == null) {
-                log.debug("no ipv4 address on " + ni.getName());
+                log.debug("no ipv4 address on {}", ni.getName());
                 return null;
             }
 
@@ -192,13 +192,13 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
             socket.setNetworkInterface(ni);
             socket.joinGroup(m);
 
-            log.trace("Joined UPnP Multicast group on Interface: " + ni.getName());
+            log.trace("Joined UPnP Multicast group on Interface: {}", ni.getName());
             byte[] requestMessage = this.getDiscoveryMessage().getBytes("UTF-8");
             DatagramPacket datagramPacket = new DatagramPacket(requestMessage, requestMessage.length, m, port);
             socket.send(datagramPacket);
             return socket;
         } catch (IOException e) {
-            log.debug("got ioexception: " + e.getMessage());
+            log.debug("got ioexception: {}", e.getMessage());
         }
 
         return null;
@@ -226,12 +226,12 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
                 // log.debug("Waiting for packet.");
                 socket.receive(packet);
             } catch (Exception e) {
-                log.debug("Got exception while trying to receive UPnP packets: " + e.getMessage());
+                log.debug("Got exception while trying to receive UPnP packets: {}", e.getMessage());
                 return;
             }
             log.trace("Got an answer message.");
             final String resultStr = analyzePacket(packet, keywords);
-            log.trace("Finished analyzing packet... " + resultStr);
+            log.trace("Finished analyzing packet... {}", resultStr);
             if (resultStr != null) {
                 HttpResponse response;
 
@@ -265,7 +265,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
                 } catch (Throwable e) {
                     // we don't need to report errors for SEARCH requests.
                     if (!e.getMessage().contains("M-SEARCH")) {
-                        log.debug("unable to parse response: " + e.getMessage());
+                        log.debug("unable to parse response: {}", e.getMessage());
                     }
                     continue;
                 }
@@ -298,7 +298,7 @@ public abstract class AbstractSSDPDiscoveryService extends AbstractDiscoveryServ
         InetAddress addr = packet.getAddress();
         ByteArrayInputStream in = new ByteArrayInputStream(packet.getData(), 0, packet.getLength());
         String response = IOUtils.toString(in);
-        log.trace("packet: " + response);
+        log.trace("packet: {}", response);
 
         boolean foundAllKeywords = true;
 

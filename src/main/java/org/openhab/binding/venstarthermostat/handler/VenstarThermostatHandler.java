@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2016 by the respective copyright holders.
+ * Copyright (c) 2010-2018 by the respective copyright holders.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -56,7 +56,6 @@ import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.config.core.status.ConfigStatusMessage;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.PercentType;
-import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -89,6 +88,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
     private String password;
     private URL url;
     private BigDecimal refresh;
+    private DefaultHttpClient httpclient;
     private List<VenstarSensor> sensorData = new ArrayList<>();
     private VenstarInfoData infoData = new VenstarInfoData();
     private Future<?> initializeTask;
@@ -142,10 +142,9 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
             sc = SSLContext.getInstance("SSL");
             sc.init(null, trustAllCerts, new java.security.SecureRandom());
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
-            log.error("Unable to configure SSL context: " + e.getMessage());
+            log.error("Unable to configure SSL context: {}", e.getMessage());
             throw (new RuntimeException(e));
         }
-
     }
 
     @Override
@@ -172,53 +171,45 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
             BigDecimal refresh = (BigDecimal) (getThing().getConfiguration().get(CONFIG_REFRESH));
 
             if (refresh.intValue() < 10) {
-                log.warn("refresh is too small: " + refresh.intValue());
+                log.warn("refresh is too small: {}", refresh.intValue());
 
                 status.add(ConfigStatusMessage.Builder.error(CONFIG_REFRESH).withMessageKeySuffix(REFRESH_INVALID)
                         .withArguments(CONFIG_REFRESH).build());
             }
         } catch (Throwable th) {
-            log.error(th.getMessage(), th);
+            log.error("{}", th.getMessage());
             status.add(ConfigStatusMessage.Builder.error("AIEEE").withMessageKeySuffix(th.getMessage()).build());
         }
 
-        log.warn("getConfigStatus returning " + status);
+        log.warn("getConfigStatus returning {}", status);
 
         return status;
     }
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        if (!(command instanceof DecimalType)) {
+            log.warn("Invalid command {} for channel {}", command, channelUID.getId());
+            return;
+        }
+
         if (channelUID.getId().equals(CHANNEL_HEATING_SETPOINT)) {
             // Note: if communication with thing fails for some reason,
             // indicate that by setting the status with detail information
             // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
             // "Could not control device at IP address x.x.x.x");
-
-            if (!(command instanceof DecimalType)) {
-                log.warn("Invalid heating setpoint command " + command);
-            } else {
-                log.debug("Setting heating setpoint to " + command.toFullString());
-                setHeatingSetpoint(((DecimalType) command).intValue());
-            }
+            log.debug("Setting heating setpoint to {}", command.toString());
+            setHeatingSetpoint(((DecimalType) command).intValue());
         }
 
         if (channelUID.getId().equals(CHANNEL_COOLING_SETPOINT)) {
-            if (!(command instanceof DecimalType)) {
-                log.warn("Invalid cooling setpoint command " + command);
-            } else {
-                log.debug("Setting cooling setpoint to " + command.toFullString());
-                setCoolingSetpoint(((DecimalType) command).intValue());
-            }
+            log.debug("Setting cooling setpoint to {}", command.toString());
+            setCoolingSetpoint(((DecimalType) command).intValue());
         }
 
         if (channelUID.getId().equals(CHANNEL_SYSTEM_MODE)) {
-            if (!(command instanceof StringType)) {
-                log.warn("Invalid system mode command " + command);
-            } else {
-                log.debug("Setting system mode to " + command.toFullString());
-                setSystemMode(Integer.valueOf(((StringType) command).toString()));
-            }
+            log.debug("Setting system mode to {}", command.toString());
+            setSystemMode(((DecimalType) command).intValue());
         }
     }
 
@@ -232,7 +223,6 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
     @Override
     public void initialize() {
         getConfigurationFromThing();
-
         scheduleCheckCommunication(1);
     }
 
@@ -244,16 +234,15 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         refresh = (BigDecimal) config.get(CONFIG_REFRESH);
 
         final String u = properties.get(PROPERTY_URL);
-        final URL url1;
 
         try {
-            url1 = new URL(u);
+            url = new URL(u);
         } catch (MalformedURLException e) {
             goOffline(ThingStatusDetail.CONFIGURATION_ERROR, "Invalid device URL: " + e.getMessage());
             return false;
         }
 
-        url = url1;
+        httpclient = buildHttpClient();
 
         log.info("Got configuration from thing. Url=" + url);
 
@@ -265,9 +254,9 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         HttpResponse response = null;
         try {
             response = getConnection();
-            log.debug("got response from venstar: " + response.getStatusLine());
+            log.debug("got response from venstar: {}", response.getStatusLine());
         } catch (Throwable e) {
-            log.warn("communication error: " + e.getMessage(), e);
+            log.warn("communication error:{} ", e.getMessage());
             goOffline(ThingStatusDetail.COMMUNICATION_ERROR,
                     "Failed to connect to URL (" + url.toString() + "): " + e.getMessage());
             return;
@@ -289,7 +278,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     protected void scheduleCheckCommunication(int seconds) {
 
-        log.info("running communication check in " + seconds + " seconds");
+        log.info("running communication check in {} seconds", seconds);
         Future<?> initializeTask1 = scheduler.schedule(new Runnable() {
             @Override
             public void run() {
@@ -417,55 +406,50 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     private void setCoolingSetpoint(int cool) {
         int heat = ((DecimalType) getHeatingSetpoint()).intValue();
-        int mode = Integer.valueOf(((StringType) getSystemMode()).toString());
-
+        int mode = ((DecimalType) getSystemMode()).intValue();
         updateThermostat(heat, cool, mode);
     }
 
     private void setSystemMode(int mode) {
         int cool = ((DecimalType) getCoolingSetpoint()).intValue();
         int heat = ((DecimalType) getHeatingSetpoint()).intValue();
-
         updateThermostat(heat, cool, mode);
     }
 
     private void setHeatingSetpoint(int heat) {
         int cool = ((DecimalType) getCoolingSetpoint()).intValue();
-        int mode = Integer.valueOf(((StringType) getSystemMode()).toString());
-
+        int mode = ((DecimalType) getSystemMode()).intValue();
         updateThermostat(heat, cool, mode);
     }
 
     private State getCoolingSetpoint() {
         if (log.isTraceEnabled()) {
-            log.trace("CoolingSetpoint: " + infoData.getCooltemp() + " -> " + new DecimalType(infoData.getCooltemp()));
+            log.trace("CoolingSetpoint: {} -> {}", infoData.getCooltemp(), new DecimalType(infoData.getCooltemp()));
         }
         return new DecimalType(infoData.getCooltemp());
     }
 
     private State getHeatingSetpoint() {
         if (log.isTraceEnabled()) {
-            log.trace("HeatingSetpoint: " + infoData.getHeattemp() + " -> " + new DecimalType(infoData.getHeattemp()));
+            log.trace("HeatingSetpoint:  {} -> {}", infoData.getHeattemp(), new DecimalType(infoData.getHeattemp()));
         }
-
         return new DecimalType(infoData.getHeattemp());
     }
 
     private State getSystemState() {
-        int num = (int) Math.round(infoData.getState());
-        return new StringType("" + num);
+        int num = Math.round(infoData.getState());
+        return new DecimalType(num);
     }
 
     private State getSystemMode() {
-        int num = (int) Math.round(infoData.getMode());
-        return new StringType("" + num);
+        int num = Math.round(infoData.getMode());
+        return new DecimalType(num);
     }
 
     private void updateThermostat(int heat, int cool, int mode) {
         Map<String, String> params = new HashMap<>();
 
-        log.debug(
-                "Updating thermostat " + getThing().getLabel() + " heat:" + heat + " cool:" + cool + " mode: " + mode);
+        log.debug("Updating thermostat {} heat:{} cool:{} mode:{}", getThing().getLabel(), heat, cool, mode);
         if (heat > 0) {
             params.put("heattemp", "" + heat);
         }
@@ -477,8 +461,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         try {
             HttpResponse result = postConnection("/control", params);
             if (log.isTraceEnabled()) {
-                log.trace("Result from theromstat: " + result.getStatusLine().toString());
-                log.trace("Result from theromstat: ");
+                log.trace("Result from theromstat: {}", result.getStatusLine().toString());
             }
             if (result.getStatusLine().getStatusCode() == 401) {
                 goOffline(ThingStatusDetail.CONFIGURATION_ERROR, "Invalid credentials");
@@ -489,7 +472,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
             HttpEntity entity = result.getEntity();
             String data = EntityUtils.toString(entity, "UTF-8");
             if (log.isTraceEnabled()) {
-                log.trace("Result from theromstat: " + data);
+                log.trace("Result from theromstat: {}", data);
             }
             ;
 
@@ -497,12 +480,12 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
             if (res.isSuccess()) {
                 log.info("Updated thermostat");
             } else {
-                log.info("Failed to update: " + res.getReason());
+                log.info("Failed to update: {}", res.getReason());
                 goOffline(ThingStatusDetail.COMMUNICATION_ERROR, "Thermostat update failed: " + res.getReason());
             }
 
         } catch (IOException e) {
-            log.info("Failed to update thermostat: " + e.getMessage());
+            log.info("Failed to update thermostat: {}", e.getMessage());
             goOffline(ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
             return;
         }
@@ -513,7 +496,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         try {
             String sensorData = getData("/query/sensors");
             if (log.isTraceEnabled()) {
-                log.trace("got sensordata from thermostat: " + sensorData);
+                log.trace("got sensordata from thermostat: {}", sensorData);
             }
 
             VenstarSensorData res = new Gson().fromJson(sensorData, VenstarSensorData.class);
@@ -532,7 +515,7 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
             String infoData = getData("/query/info");
             if (log.isTraceEnabled()) {
-                log.trace("got info from thermostat: " + infoData);
+                log.trace("got info from thermostat: {}", infoData);
             }
             VenstarInfoData id = new Gson().fromJson(infoData, VenstarInfoData.class);
             if (id != null) {
@@ -560,11 +543,11 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
             return sensorData;
         } catch (IOException e) {
-            log.warn("failed to open connection: " + e.getMessage());
+            log.warn("failed to open connection: {}", e.getMessage());
             goOffline(ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
             return null;
         } catch (URISyntaxException use) {
-            log.warn("bad uri: " + use.getMessage());
+            log.warn("bad uri: {}", use.getMessage());
             goOffline(ThingStatusDetail.CONFIGURATION_ERROR, use.getMessage());
             return null;
         }
@@ -577,8 +560,6 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
 
     HttpResponse getConnection(String path) throws IOException, URISyntaxException {
 
-        DefaultHttpClient httpclient = buildHttpClient();
-
         UriBuilder builder = UriBuilder.fromUri(url.toURI());
         if (path != null) {
             builder.path(path);
@@ -587,6 +568,29 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         HttpGet httpget = new HttpGet(builder.build());
 
         HttpResponse response = httpclient.execute(httpget);
+
+        return response;
+    }
+
+    HttpResponse postConnection(String path, Map<String, String> params) throws IOException {
+
+        UriBuilder builder = UriBuilder.fromUri(getThing().getProperties().get(PROPERTY_URL));
+        if (path != null) {
+            builder.path(path);
+        }
+
+        HttpPost post = new HttpPost(builder.build());
+        List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+
+        for (Entry<String, String> ent : params.entrySet()) {
+            if (log.isTraceEnabled()) {
+                log.trace("setting {}: {}", ent.getKey(), ent.getValue());
+            }
+            urlParameters.add(new BasicNameValuePair(ent.getKey(), ent.getValue()));
+        }
+        post.setEntity(new UrlEncodedFormEntity(urlParameters));
+
+        HttpResponse response = httpclient.execute(post);
 
         return response;
     }
@@ -605,30 +609,6 @@ public class VenstarThermostatHandler extends ConfigStatusThingHandler {
         httpclient.setCredentialsProvider(credsProvider);
 
         return httpclient;
-    }
-
-    HttpResponse postConnection(String path, Map<String, String> params) throws IOException {
-        DefaultHttpClient httpclient = buildHttpClient();
-
-        UriBuilder builder = UriBuilder.fromUri(getThing().getProperties().get(PROPERTY_URL));
-        if (path != null) {
-            builder.path(path);
-        }
-
-        HttpPost post = new HttpPost(builder.build());
-        List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-
-        for (Entry<String, String> ent : params.entrySet()) {
-            if (log.isTraceEnabled()) {
-                log.trace("setting " + ent.getKey() + ": " + ent.getValue());
-            }
-            urlParameters.add(new BasicNameValuePair(ent.getKey(), ent.getValue()));
-        }
-        post.setEntity(new UrlEncodedFormEntity(urlParameters));
-
-        HttpResponse response = httpclient.execute(post);
-
-        return response;
     }
 
 }

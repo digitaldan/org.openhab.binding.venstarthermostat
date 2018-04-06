@@ -26,7 +26,7 @@
         
         <config-description>
             <parameter name="username" type="text" required="true">
-                <label>Username</label>
+                <label>User Name</label>
                 <description></description>
             </parameter>
             <parameter name="password" type="text" required="true">
@@ -44,7 +44,7 @@
     </thing-type>
 
     <channel-type id="systemMode">
-        <item-type>String</item-type>
+        <item-type>Number</item-type>
         <label>System Mode</label>
         <description>Current System Operating Mode</description>
         <category>String</category>
@@ -59,7 +59,7 @@
     </channel-type>
 
     <channel-type id="systemState">
-        <item-type>String</item-type>
+        <item-type>Number</item-type>
         <label>System State</label>
         <description>Current System Operating State</description>
         <category>String</category>
